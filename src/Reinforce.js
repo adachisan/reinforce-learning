@@ -1,26 +1,40 @@
+
 class Reinforce {
+    #steps;
+
+    /** @param {number} actions */
     constructor(actions) {
-        this.actions = Array(actions).fill();
+        /** @type {number[]} */
+        this.actions = Array(actions).fill(0);
+        /** @type {object} */
         this.qTable = {};
-        this.step = [];
+        /** @type {number} */
         this.rate = 0.1;
+        /** @type {number} */
         this.discount = 0.9;
+        /** @type {object[]} */
+        this.#steps = [];
     }
 
-    selectState(inputs, inputRange = 3) {
-        let state = inputs.map((input, i) => input * Math.pow(inputRange, i)).reduce((a, b) => a + b);
-        if (!this.qTable[state]) this.qTable[state] = this.actions.map(q => Math.random() * 0.1);
-        return state;
-    }
-
+    /**
+     * @param {string} state 
+     * @param {number} [exploration] 
+     */
     selectAction(state, exploration = 0.1) {
+        this.qTable[state] ??= this.actions.map(_ => Math.random() * 0.1);
         let maxQ = Math.max(...this.qTable[state]);
         let maxAction = this.qTable[state].indexOf(maxQ);
         let randomAction = Math.floor(Math.random() * this.actions.length);
         return Math.random() < exploration ? randomAction : maxAction;
     }
 
-    qLearning(lastState, lastAction, nextState, reward) {
+    /**
+     * @param {string} lastState 
+     * @param {number} lastAction 
+     * @param {string} nextState 
+     * @param {number} reward 
+     */
+    #maxq(lastState, lastAction, nextState, reward) {
         let lastQ = this.qTable[lastState][lastAction];
         let nextQ = this.qTable[nextState][this.selectAction(nextState, 0)];
         let targetQ = reward + this.discount * nextQ;
@@ -28,7 +42,14 @@ class Reinforce {
         this.qTable[lastState][lastAction] += this.rate * error;
     }
 
-    SARSA(lastState, lastAction, nextState, nextAction, reward) {
+    /**
+     * @param {string} lastState 
+     * @param {number} lastAction 
+     * @param {string} nextState 
+     * @param {number} nextAction 
+     * @param {number} reward 
+     */
+    #sarsa(lastState, lastAction, nextState, nextAction, reward) {
         let lastQ = this.qTable[lastState][lastAction];
         let nextQ = this.qTable[nextState][nextAction];
         let targetQ = reward + this.discount * nextQ;
@@ -36,17 +57,26 @@ class Reinforce {
         this.qTable[lastState][lastAction] += this.rate * error;
     }
 
-    update(state, action, reward, end = false, stepsAhead = 1, method = 1) {
-        this.step.push({ state, action, reward });
-        if (this.step.length < stepsAhead + 1) return;
-        if (this.step.length > stepsAhead + 1) this.step.shift();
-        reward = this.step.slice(1).map((x, i) => Math.pow(this.discount, i) * x.reward).reduce((a, b) => a + b);
-        let first = this.step[0];
-        if (method == 1) this.qLearning(first.state, first.action, state, reward);
-        else this.SARSA(first.state, first.action, state, action, reward);
-        this.step = end ? [] : this.step;
+    /**
+     * @param {string} state 
+     * @param {number} action 
+     * @param {number} reward 
+     * @param {1 | 2} method 
+     * @param {boolean} [end] 
+     */
+    update(state, action, reward, method, end = false) {
+        this.#steps.push({ state, action });
+        if (this.#steps.length <= 1) return;
+        if (this.#steps.length > 2) this.#steps.shift();
+
+        const last = this.#steps[0];
+        if (method == 1) this.#maxq(last.state, last.action, state, reward);
+        else this.#sarsa(last.state, last.action, state, action, reward);
+
+        this.#steps = end ? [] : this.#steps;
     }
 
+    /** @returns {number} */
     get length() {
         return Object.keys(this.qTable).length;
     }
