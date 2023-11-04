@@ -1,73 +1,80 @@
+import Reinforce from "./lib/Reinforce.js";
+import SnakeGame from "./lib/Snake2.js";
 
-const arr = Array(6).fill(0).map((x, i) => i);
-const method = [1, 1, 1, 2, 2, 2];
-const steps = [1, 3, 5, 1, 3, 5];
-const learning = arr.map(i => new Reinforce(3));
-const rate = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-const title = arr.map(i => `${steps[i]}-${method[i] > 1 ? 'S' : 'Q'}-${rate[i]}`);
+/** @type {{brain: Reinforce, method: 0 | 1, rate: number}[]} */
+const configs = [
+    { brain: new Reinforce(3), method: 0, rate: 0.3 },
+    { brain: new Reinforce(3), method: 1, rate: 0.3 },
+];
 
-for (let i = 0; i < arr.length; i++) {
+const titles = configs.map(i => `${i.method > 0 ? 'S' : 'Q'}-${i.rate}`);
 
-    let canvas = document.createElement('canvas');
+function createCanvas() {
+    const canvas = document.createElement('canvas');
     document.body.appendChild(canvas);
-    canvas.width = '200';
-    canvas.height = '200';
+    canvas.width = 200;
+    canvas.height = 200;
+    return canvas;
+}
 
-    let p1 = document.createElement('p');
-    let p2 = document.createElement('p');
-    document.body.appendChild(p1);
-    // document.body.appendChild(p2);
+function createParagraph() {
+    const paragraph = document.createElement('p');
+    document.body.appendChild(paragraph);
+    return paragraph;
+}
 
-    if (localStorage[title[i]])
-        learning[i].qTable = JSON.parse(localStorage[title[i]]);
+for (const [i, config] of configs.entries()) {
 
-    let game = new SnakeGame(10, 1000, canvas);
-    let status = { score: 0, best: 0, episode: 0, earn: 0 };
+    if (localStorage[titles[i]])
+        config.brain.qTable = JSON.parse(localStorage[titles[i]]);
 
-    game.onMove = (snake, target) => {
+    const game = SnakeGame(20, 1000, createCanvas());
+    const status = { score: 0, best: 0, episode: 0, earn: 0 };
+    const paragraph = createParagraph();
 
-        //calculates reward influenced by the last action
-        let reward = snake.dead ? -10 : snake.fed ? 10 : 0;
+    game.start((snake, target) => {
+
+        /** @type {(a: number, b: number) => number} */
+        const dist = (a, b) => Math.floor(Math.abs(a - b) / 20 * 3);
+        const totalDist = Math.floor((dist(snake.x, target.x) + dist(snake.y, target.y)));
+        const inputs = [...snake.view.map(([a, b]) => b == "DANGER" ? 1 : b == "TARGET" ? 2 : 0), totalDist];
+
+        const reward = snake.dead ? -1 : snake.fed ? +1 : 0;
         status.score = snake.fed ? status.score + 1 : snake.dead ? 0 : status.score;
         status.best = status.score > status.best ? status.score : status.best;
         status.episode += snake.dead ? 1 : 0;
         status.earn += snake.fed ? 1 : 0;
 
-        //add distance information
-        let inputs = [...snake.view];
-        // let dist = (a, b) => Math.floor(Math.abs(a - b) / game.grid * 3);
-        // inputs.push(dist(snake.x, target.x));
-        // inputs.push(dist(snake.y, target.y));
+        const nextState = inputs.join('');
+        const nextAction = config.brain.selectAction(nextState, 0.01);
+        const actionMap = { 0: "LEFT", 1: "FORWARD", 2: "RIGHT" };
+        snake.setDirection(actionMap[nextAction]);
 
-        //gets next state-action
-        let nextState = learning[i].selectState(inputs, 3);
-        let nextAction = learning[i].selectAction(nextState, 0.00);
-        //sets up next action
-        game.snake.setRelativeDirection(nextAction);
+        config.brain.rate = config.rate;
+        config.brain.update(nextState, nextAction, reward, config.method, snake.dead);
 
-        //updates last state-action using next state-action and resultant reward of the last action
-        learning[i].rate = rate[i];
-        learning[i].update(nextState, nextAction, reward, snake.dead, steps[i], method[i]);
-
-        //log everything on screen
-        p1.innerText = JSON.stringify({
-            episode: status.episode,
-            best: status.best,
-            states: learning[i].length,
-            ratio: (status.earn / status.episode).toFixed(2),
-            name: title[i]
-        });
-        p2.innerText = JSON.stringify({ inputs, reward });
-    }
+        (async () => {
+            const data = {
+                episode: status.episode,
+                best: status.best,
+                states: config.brain.length,
+                ratio: (status.earn / status.episode).toFixed(2),
+                name: titles[i],
+                dist: totalDist,
+                inputs: nextState,
+            };
+            paragraph.innerText = JSON.stringify(data);
+        })();
+    });
 }
 
-let btn = document.createElement('button');
+const btn = document.createElement('button');
 btn.style.width = '50px';
 btn.style.height = '25px';
 btn.innerText = 'save';
 document.body.appendChild(btn);
-btn.onclick = () => arr.forEach(i => localStorage[title[i]] = JSON.stringify(learning[i].qTable));
-setInterval(() => btn.click(), 120000);
+btn.onclick = () => configs.forEach(({ brain }, i) => localStorage[titles[i]] = JSON.stringify(brain.qTable));
+setInterval(() => btn.click(), 60000);
 
 // function getDirection(a, b) {
 //     let dx = b.x - a.x;

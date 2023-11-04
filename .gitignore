@@ -1,6 +1,12 @@
 .vscode/
+.deps/
+bin/
+obj/
+node_modules/
+artifacts/
+cache/
 *.env*
 *.txt
 *.log
 config.*
-!README.txt
+!README.*
