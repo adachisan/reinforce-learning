@@ -1,21 +1,21 @@
+
+/** @typedef {{x: number, y: number}} Point */
+/** @typedef {"LEFT" | "FORWARD" | "RIGHT"} Direction */
+/** @typedef {"VOID" | "DANGER" | "TARGET"} Collision */
+/** @typedef {[Point, Collision]} View */
+/** @typedef {Point & {respawn: () => void}} Respawnable */
+/** @typedef {Respawnable & {tail: Point[], view: View[], direction: Point, dead: boolean, fed: boolean}} Snake */
+
 export default class SnakeGame {
 
-    /** @typedef {{x: number, y: number}} Point */
-    /** @typedef {"LEFT" | "FORWARD" | "RIGHT"} Direction */
-    /** @typedef {"VOID" | "DANGER" | "TARGET"} Collision */
-    /** @typedef {[Point, Collision]} View */
-    /** @typedef {Point & {respawn: () => void}} Respawnable */
-    /** @typedef {Respawnable & {tail: Point[], view: View[], direction: Point, dead: boolean, fed: boolean}} Snake */
-
-    view = /** @type {number} */ (2);
     #fps = /** @type {number} */ (5);
-    #size = /** @type {number} */ (20);
+    #size = /** @type {number} */ (10);
     canvas = /** @type {HTMLCanvasElement | undefined} */ (undefined);
     target =  /** @type {Respawnable} */({});
     snake =  /** @type {Snake} */({});
 
     /** @param {number} [size] @param {number} [fps] @param {HTMLCanvasElement} [canvas]  */
-    constructor(size = 20, fps = 5, canvas) {
+    constructor(size = 10, fps = 5, canvas) {
         this.#size = size;
         this.#fps = fps;
         this.canvas = canvas;
@@ -64,10 +64,10 @@ export default class SnakeGame {
             this.snake.tail.shift();
     };
 
-    #updateView = () => {
+    #updateView = (viewLimit = 2) => {
         const { direction: { x: dx, y: dy }, x: sx, y: sy } = this.snake;
         const newView = /** @type {View[][]} */ ([[], [], []]);
-        for (let i = 1; i <= this.view; i++) {
+        for (let i = 1; i <= viewLimit; i++) {
             const left = { x: sx + i * dy, y: sy - i * dx };
             const front = { x: sx + i * dx, y: sy + i * dy };
             const right = { x: sx - i * dy, y: sy + i * dx };

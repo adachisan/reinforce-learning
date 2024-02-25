@@ -20,15 +20,6 @@ export default class Reinforce {
         return Math.random() < exploration ? randomAction : maxAction;
     }
 
-    /** @type {(lastState: string, lastAction: number, nextState: string, reward: number) => void} */
-    #maxq(lastState, lastAction, nextState, reward) {
-        const lastQ = this.qTable[lastState][lastAction];
-        const nextQ = this.qTable[nextState][this.selectAction(nextState, 0)];
-        const targetQ = reward + this.discount * nextQ;
-        const error = targetQ - lastQ;
-        this.qTable[lastState][lastAction] += this.rate * error;
-    }
-
     /** @type {(lastState: string, lastAction: number, nextState: string, nextAction: number, reward: number) => void} */
     #sarsa(lastState, lastAction, nextState, nextAction, reward) {
         const lastQ = this.qTable[lastState][lastAction];
@@ -38,14 +29,13 @@ export default class Reinforce {
         this.qTable[lastState][lastAction] += this.rate * error;
     }
 
-    /** @type {(state: string, action: number, reward: number, method: 0 | 1, end?: boolean) => void} */
-    update(state, action, reward, method, end = false) {
+    /** @type {(state: string, action: number, reward: number, end?: boolean) => void} */
+    update(state, action, reward, end = false) {
         this.#steps.push({ state, action });
         if (this.#steps.length <= 1) return;
         if (this.#steps.length > 2) this.#steps.shift();
         const last = this.#steps[0];
-        if (method == 0) this.#maxq(last.state, last.action, state, reward);
-        else this.#sarsa(last.state, last.action, state, action, reward);
+        this.#sarsa(last.state, last.action, state, action, reward);
         this.#steps = end ? [] : this.#steps;
     }
 

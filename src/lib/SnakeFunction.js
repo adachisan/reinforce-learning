@@ -1,15 +1,18 @@
-/** @param {number} [size] @param {number} [fps] @param {HTMLCanvasElement} [canvas]  */
-export default function SnakeGame2(size = 20, fps = 5, canvas = undefined) {
 
-    /** @typedef {{x: number, y: number}} Point */
-    /** @typedef {"LEFT" | "FORWARD" | "RIGHT"} Direction */
-    /** @typedef {"VOID" | "DANGER" | "TARGET"} Collision */
-    /** @typedef {[Point, Collision]} View */
-    /** @typedef {Point & {respawn: () => void, setDirection: (direction: Direction) => void}} Respawnable */
-    /** @typedef {Respawnable & {tail: Point[], view: View[], direction: Point, dead: boolean, fed: boolean}} Snake */
+/** @typedef {{x: number, y: number}} Point */
+/** @typedef {"LEFT" | "FORWARD" | "RIGHT"} Direction */
+/** @typedef {"VOID" | "DANGER" | "TARGET"} Collision */
+/** @typedef {[Point, Collision]} View */
+/** @typedef {Point & {respawn: () => void, setDirection: (direction: Direction) => void}} Respawnable */
+/** @typedef {Respawnable & {tail: Point[], view: View[], direction: Point, dead: boolean, fed: boolean}} Snake */
+
+/** @param {number} [size] @param {number} [fps] @param {HTMLCanvasElement} [canvas]  */
+export default function SnakeGame(size = 10, fps = 5, canvas = undefined) {
 
     /** @type {(max: number) => number} */
     const random = (max) => Math.floor(Math.random() * max);
+
+    let pending = false;
 
     const snake = /** @type {Snake} */ ({
         respawn() {
@@ -20,10 +23,11 @@ export default function SnakeGame2(size = 20, fps = 5, canvas = undefined) {
             snake.direction = direction[random(4)];
         },
         setDirection(direction) {
-            if (direction == undefined || direction == "FORWARD") return;
+            if (direction == undefined || direction == "FORWARD" || pending) return;
             const left = { x: snake.direction.y, y: -snake.direction.x };
             const right = { x: -snake.direction.y, y: snake.direction.x };
             snake.direction = { "LEFT": left, "RIGHT": right }[direction];
+            pending = true;
         }
     });
 
@@ -45,6 +49,7 @@ export default function SnakeGame2(size = 20, fps = 5, canvas = undefined) {
     const move = () => {
         snake.x += snake.direction.x;
         snake.y += snake.direction.y;
+        pending = false;
     };
 
     const updateStatus = () => {
@@ -61,17 +66,21 @@ export default function SnakeGame2(size = 20, fps = 5, canvas = undefined) {
             snake.tail.shift();
     };
 
-    /** @param {number} viewLimit */
-    const updateView = (viewLimit = 2) => {
+    const updateView = (viewLimit = 9) => {
         const { direction: { x: dx, y: dy }, x: sx, y: sy } = snake;
-        const newView = /** @type {View[][]} */ ([[], [], []]);
+        const newView = /** @type {View[][]} */ ([[], [], [], [], []]);
         for (let i = 1; i <= viewLimit; i++) {
-            const left = { x: sx + i * dy, y: sy - i * dx };
-            const front = { x: sx + i * dx, y: sy + i * dy };
-            const right = { x: sx - i * dy, y: sy + i * dx };
+            const [offsetX, offsetY] = [i * dx, i * dy];
+            const left = { x: sx + offsetY, y: sy - offsetX };
+            const leftDiagonal = { x: sx + offsetY + offsetX, y: sy - offsetX + offsetY };
+            const front = { x: sx + offsetX, y: sy + offsetY };
+            const rightDiagonal = { x: sx - offsetY + offsetX, y: sy + offsetX + offsetY };
+            const right = { x: sx - offsetY, y: sy + offsetX };
             newView[0].push([left, checkCollision(left)]);
-            newView[1].push([front, checkCollision(front)]);
-            newView[2].push([right, checkCollision(right)]);
+            newView[1].push([leftDiagonal, checkCollision(leftDiagonal)]);
+            newView[2].push([front, checkCollision(front)]);
+            newView[3].push([rightDiagonal, checkCollision(rightDiagonal)]);
+            newView[4].push([right, checkCollision(right)])
         }
         snake.view = newView.flat();
     }
@@ -124,5 +133,5 @@ export default function SnakeGame2(size = 20, fps = 5, canvas = undefined) {
         }, 1000 / fps);
     };
 
-    return { useArrows, start, stop: () => clearInterval(timer), pause: () => paused = !paused };
+    return { get size() { return size }, useArrows, start, pause() { paused = !paused }, stop() { clearInterval(timer) } };
 }

@@ -1,5 +1,59 @@
-<head></head>
-<body></body>
-<!-- <script src="../lib/Snake.js"></script>
-<script src="../lib/Reinforce.js"></script> -->
-<script type="module" src="./index.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-dark.css" type="text/css">
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <!-- <link rel="stylesheet" href="https://unpkg.com/simpledotcss/simple.css" type="text/css"> -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.classless.min.css" /> -->
+    <title>snake reinforcement learning</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        body * {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button-simple {
+            --base: hsl(195, 70%, 40%);
+            --shadow: #656565;
+
+            height: 25px;
+            width: 65px;
+            cursor: pointer;
+            background-color: var(--base);
+            border: 1px solid var(--shadow);
+            color: black;
+            border-radius: 5px;
+
+            box-shadow: 0px 4.5px 3px var(--shadow);
+
+            &:active {
+                box-shadow: 0px 2.5px 3px var(--shadow);
+                transform: translateY(2px);
+            }
+
+            &:hover {
+                background-color: var(--base);
+                filter: brightness(80%);
+                color: white;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <script type="module" src="./index.js"></script>
+</body>
+
+</html>
